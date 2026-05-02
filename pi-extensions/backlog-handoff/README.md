@@ -54,5 +54,22 @@ Default target location:
 - `/backlog-handoff-init` — initialize current repo and register project in meta registry
 - `/backlog-handoff-check` — validate config and registry
 
+## Tool payload shape
+`backlog-handoff` accepts flat top-level arguments. Do **not** wrap them in `{ "input": ... }`.
+
+```json
+{
+  "targetProject": "backend",
+  "title": "Add webhook retry endpoint",
+  "rationale": "Retry behavior belongs in backend and was discovered while wiring frontend error handling.",
+  "requestedChange": "Expose a retry endpoint and persist retry metadata for failed deliveries.",
+  "constraints": "Keep existing webhook payload shape. No frontend changes in this task.",
+  "acceptanceCriteria": [
+    "Retry endpoint exists and is authenticated.",
+    "Failed deliveries can be retried without duplicating successful ones."
+  ]
+}
+```
+
 ## Example
 See `examples/generic-fullstack/`.

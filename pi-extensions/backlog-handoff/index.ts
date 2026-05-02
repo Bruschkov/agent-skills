@@ -1,7 +1,7 @@
 import { withFileMutationQueue, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { Type } from "typebox";
+import { Type, type Static } from "typebox";
 
 type BacklogHandoffLocalConfig = {
 	projectId: string;
@@ -64,6 +64,8 @@ const BACKLOG_HANDOFF_SCHEMA = Type.Object({
 		minItems: 1,
 	}),
 });
+
+type BacklogHandoffInput = Static<typeof BACKLOG_HANDOFF_SCHEMA>;
 
 async function pathExists(targetPath: string): Promise<boolean> {
 	try {
@@ -649,8 +651,8 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 			}
 			return prepared;
 		},
-		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-			const { targetProject, title, rationale, requestedChange, constraints, acceptanceCriteria } = params.input;
+		async execute(_toolCallId, params: BacklogHandoffInput, _signal, _onUpdate, ctx) {
+			const { targetProject, title, rationale, requestedChange, constraints, acceptanceCriteria } = params;
 			const registry = await loadRegistryContext(ctx.cwd);
 			if (!registry) {
 				throw new Error(
