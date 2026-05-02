@@ -45,10 +45,12 @@ Optional:
 Default target location:
 
 ```text
-<target-repo>/.backlog-handoff/inbox/
+<target-repo>/.backlog-handoff/
+├── inbox/
+└── processed/
 ```
 
-`backlog-handoff` writes markdown handoff files there. Target project can later review and convert them into real `backlog-md` tickets.
+`backlog-handoff` writes markdown handoff files to `inbox/`. `/backlog-handoff-init` bootstraps both directories with `.gitkeep` files. Target project can later move reviewed items to `processed/` or convert them into real `backlog-md` tickets.
 
 ## Commands
 - `/backlog-handoff-init` — initialize current repo and register project in meta registry

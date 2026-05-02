@@ -31,5 +31,6 @@ Copy this layout. Then adapt:
 - optional `handoffDir` if you do not want default `.backlog-handoff/inbox`
 
 Default behavior:
+- `/backlog-handoff-init` bootstraps `.backlog-handoff/inbox/` and `.backlog-handoff/processed/` inside each project repo
 - `backlog-handoff` writes landing-zone markdown files to `.backlog-handoff/inbox/` inside target repo
-- target project can later review and convert them into real `backlog-md` tickets
+- target project can later review inbox items, move them to `processed/`, or convert them into real `backlog-md` tickets

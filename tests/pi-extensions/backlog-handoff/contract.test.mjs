@@ -39,16 +39,22 @@ async function loadBacklogHandoffHarness() {
 		const { wrapToolDefinition } = await import(wrapEntry);
 
 		let tool;
+		const commands = new Map();
 		extensionModule.default({
 			on() {},
-			registerCommand() {},
+			async exec() {
+				return { code: 1, stdout: "", stderr: "" };
+			},
+			registerCommand(name, definition) {
+				commands.set(name, definition);
+			},
 			registerTool(definition) {
 				tool = definition;
 			},
 		});
 
 		assert.ok(tool, "Extension did not register backlog-handoff tool");
-		return { tool, validateToolArguments, wrapToolDefinition };
+		return { tool, commands, validateToolArguments, wrapToolDefinition };
 	})();
 
 	return cachedHarnessPromise;
@@ -146,6 +152,54 @@ test("backlog-handoff accepts flat payload and writes handoff file", async () =>
 	assert.match(handoffContent, /## Acceptance Criteria/);
 	assert.match(handoffContent, /- \[ \] Retry metadata endpoint exists and is authenticated\./);
 	assert.match(handoffContent, /- \[ \] Retry timestamps are persisted for failed jobs\./);
+});
+
+test("backlog-handoff-init bootstraps processed folder alongside inbox", async () => {
+	const { commands } = await loadBacklogHandoffHarness();
+	const initCommand = commands.get("backlog-handoff-init");
+	assert.ok(initCommand, "Extension did not register backlog-handoff-init command");
+
+	const root = await mkdtemp(path.join(os.tmpdir(), "backlog-handoff-init-workspace-"));
+	const metaRoot = path.join(root, "meta");
+	const projectRoot = path.join(metaRoot, "frontend");
+	const notifications = [];
+
+	await mkdir(projectRoot, { recursive: true });
+
+	await initCommand.handler({}, {
+		cwd: projectRoot,
+		hasUI: true,
+		ui: {
+			async input(label) {
+				return label === "Project id" ? "frontend" : "..";
+			},
+			async editor() {
+				return JSON.stringify(
+					{
+						id: "frontend",
+						path: "./frontend",
+						description: "Frontend app. Owns UI flows and presentation logic.",
+					},
+					null,
+					2,
+				);
+			},
+			async confirm() {
+				return true;
+			},
+			notify(message, level) {
+				notifications.push({ message, level });
+			},
+		},
+	});
+
+	assert.equal(await readFile(path.join(projectRoot, ".backlog-handoff", "inbox", ".gitkeep"), "utf8"), "");
+	assert.equal(await readFile(path.join(projectRoot, ".backlog-handoff", "processed", ".gitkeep"), "utf8"), "");
+	assert.equal(
+		JSON.parse(await readFile(path.join(projectRoot, ".backlog-handoff", "config.json"), "utf8")).projectId,
+		"frontend",
+	);
+	assert.ok(notifications.some(({ message, level }) => level === "success" && /Initialized backlog handoff/.test(message)));
 });
 
 test("backlog-handoff rejects actually invalid flat payloads at validation time", async () => {

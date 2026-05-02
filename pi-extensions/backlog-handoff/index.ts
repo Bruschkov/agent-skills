@@ -539,7 +539,9 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 
 			const localConfig = { projectId, metaRoot: metaRootSetting };
 			const inboxDir = path.join(projectRoot, ".backlog-handoff", "inbox");
-			const gitkeepPath = path.join(inboxDir, ".gitkeep");
+			const processedDir = path.join(projectRoot, ".backlog-handoff", "processed");
+			const inboxGitkeepPath = path.join(inboxDir, ".gitkeep");
+			const processedGitkeepPath = path.join(processedDir, ".gitkeep");
 			const willOverwriteLocalConfig = await pathExists(localConfigPath);
 			const willOverwriteProjectEntry = await pathExists(projectEntryPath);
 			const ok = await ctx.ui.confirm(
@@ -550,6 +552,7 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 					`Local config: ${localConfigPath}${willOverwriteLocalConfig ? " (overwrite)" : ""}`,
 					`Project entry: ${projectEntryPath}${willOverwriteProjectEntry ? " (overwrite)" : ""}`,
 					`Inbox dir: ${inboxDir}`,
+					`Processed dir: ${processedDir}`,
 				].join("\n"),
 			);
 			if (!ok) {
@@ -561,6 +564,7 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 				await fs.mkdir(path.join(projectRoot, ".backlog-handoff"), { recursive: true });
 				await fs.mkdir(projectsDir, { recursive: true });
 				await fs.mkdir(inboxDir, { recursive: true });
+				await fs.mkdir(processedDir, { recursive: true });
 
 				await withFileMutationQueue(localConfigPath, async () => {
 					await fs.writeFile(localConfigPath, stringifyJson(localConfig), "utf-8");
@@ -570,8 +574,12 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 					await fs.writeFile(projectEntryPath, stringifyJson(projectEntry), "utf-8");
 					return { content: [], details: {} };
 				});
-				await withFileMutationQueue(gitkeepPath, async () => {
-					await fs.writeFile(gitkeepPath, "", "utf-8");
+				await withFileMutationQueue(inboxGitkeepPath, async () => {
+					await fs.writeFile(inboxGitkeepPath, "", "utf-8");
+					return { content: [], details: {} };
+				});
+				await withFileMutationQueue(processedGitkeepPath, async () => {
+					await fs.writeFile(processedGitkeepPath, "", "utf-8");
 					return { content: [], details: {} };
 				});
 			} catch (error: any) {
