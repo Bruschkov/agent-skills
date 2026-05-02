@@ -1,0 +1,12 @@
+{
+  "id": "backend",
+  "path": "./app-backend",
+  "description": "REST backend. Owns routes, auth, business logic, validation, and persistence.",
+  "owns": [
+    "routes",
+    "auth",
+    "business logic",
+    "request validation",
+    "database"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "frontend",
+  "path": "./app-frontend",
+  "description": "Web frontend. Owns UI, pages, forms, client-side state, and integration with backend APIs.",
+  "owns": [
+    "ui",
+    "pages",
+    "forms",
+    "client state",
+    "api integration"
+  ]
+}
