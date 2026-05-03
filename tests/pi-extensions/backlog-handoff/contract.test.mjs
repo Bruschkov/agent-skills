@@ -267,6 +267,52 @@ test("backlog-handoff-init pre-fills project entry with generated description wh
 	assert.match(editorInitialContent, /"description": "Frontend billing app\. Owns checkout UI, customer billing pages, and browser-side payment flows\."/);
 });
 
+test("backlog-handoff-init warns when description draft times out and keeps placeholder", async () => {
+	const { commands } = await loadBacklogHandoffHarness({
+		execImpl: async (command) => {
+			if (command === "git") {
+				return { code: 1, stdout: "", stderr: "" };
+			}
+			return { code: 0, stdout: "", stderr: "", killed: true };
+		},
+	});
+	const initCommand = commands.get("backlog-handoff-init");
+	assert.ok(initCommand, "Extension did not register backlog-handoff-init command");
+
+	const root = await mkdtemp(path.join(os.tmpdir(), "backlog-handoff-init-description-timeout-"));
+	const metaRoot = path.join(root, "meta");
+	const projectRoot = path.join(metaRoot, "frontend");
+	const notifications = [];
+	let editorInitialContent = "";
+
+	await mkdir(projectRoot, { recursive: true });
+
+	await initCommand.handler({}, {
+		cwd: projectRoot,
+		hasUI: true,
+		ui: {
+			async input(label) {
+				return label === "Project id" ? "frontend" : "..";
+			},
+			async editor(_title, content) {
+				editorInitialContent = content;
+				return content;
+			},
+			async confirm() {
+				return true;
+			},
+			notify(message, level) {
+				notifications.push({ message, level });
+			},
+		},
+	});
+
+	assert.match(editorInitialContent, /"description": "TODO: Replace with 1-2 sentences describing this project and what work belongs here\."/);
+	assert.ok(
+		notifications.some(({ message, level }) => level === "warning" && /timed out after 60s/.test(message)),
+	);
+});
+
 test("backlog-handoff rejects actually invalid flat payloads at validation time", async () => {
 	const { tool, validateToolArguments, wrapToolDefinition } = await loadBacklogHandoffHarness();
 	const { currentProjectRoot } = await createWorkspace();

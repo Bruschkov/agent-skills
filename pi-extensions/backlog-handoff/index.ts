@@ -42,6 +42,13 @@ type ValidationIssue = {
 	filePath?: string;
 };
 
+type ProjectDescriptionDraftResult = {
+	description: string | null;
+	warning?: string;
+};
+
+const PROJECT_DESCRIPTION_DRAFT_TIMEOUT_MS = 60_000;
+
 const BACKLOG_HANDOFF_SCHEMA = Type.Object({
 	targetProject: Type.String({
 		description: "Configured target project ID from the current meta-project registry, e.g. 'backend' or 'scraper'",
@@ -474,7 +481,7 @@ async function generateProjectDescriptionDraft(
 	projectRoot: string,
 	projectId: string,
 	projectPath: string,
-): Promise<string | null> {
+): Promise<ProjectDescriptionDraftResult> {
 	const prompt = [
 		"Inspect current repository and draft the description field for a backlog-handoff project registry entry.",
 		`Project id: ${projectId}`,
@@ -511,15 +518,36 @@ async function generateProjectDescriptionDraft(
 			"read,grep,find,ls",
 			prompt,
 		],
-		{ cwd: projectRoot, timeout: 20_000 },
+		{ cwd: projectRoot, timeout: PROJECT_DESCRIPTION_DRAFT_TIMEOUT_MS },
 	);
 
-	if (result.code !== 0 || result.killed) {
-		return null;
+	if (result.killed) {
+		return {
+			description: null,
+			warning: `Suggested project description draft timed out after ${Math.round(PROJECT_DESCRIPTION_DRAFT_TIMEOUT_MS / 1000)}s. Using placeholder description.`,
+		};
+	}
+
+	if (result.code !== 0) {
+		const detail = (result.stderr ?? result.stdout ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+		return {
+			description: null,
+			warning: detail
+				? `Suggested project description draft failed (exit ${result.code}): ${detail}. Using placeholder description.`
+				: `Suggested project description draft failed (exit ${result.code}). Using placeholder description.`,
+		};
 	}
 
 	const rawText = extractLastAssistantTextFromJsonMode(result.stdout) ?? result.stdout.trim();
-	return rawText ? parseGeneratedProjectDescription(rawText) : null;
+	const description = rawText ? parseGeneratedProjectDescription(rawText) : null;
+	if (!description) {
+		return {
+			description: null,
+			warning: "Suggested project description draft returned unusable output. Using placeholder description.",
+		};
+	}
+
+	return { description };
 }
 
 function buildValidationReport(registry: RegistryContext, issues: ValidationIssue[]): string {
@@ -644,16 +672,21 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 			} else {
 				ctx.ui.notify("Drafting suggested project description...", "info");
 				try {
-					const generatedDescription = await generateProjectDescriptionDraft(pi, projectRoot, projectId, projectPath);
-					if (generatedDescription) {
+					const draftResult = await generateProjectDescriptionDraft(pi, projectRoot, projectId, projectPath);
+					if (draftResult.description) {
 						initialProjectEntry = stringifyJson({
 							id: projectId,
 							path: projectPath,
-							description: generatedDescription,
+							description: draftResult.description,
 						});
+					} else if (draftResult.warning) {
+						ctx.ui.notify(draftResult.warning, "warning");
 					}
-				} catch {
-					// Fall back to placeholder description.
+				} catch (error: any) {
+					ctx.ui.notify(
+						`Suggested project description draft failed: ${error?.message ?? String(error)}. Using placeholder description.`,
+						"warning",
+					);
 				}
 			}
 
