@@ -23,40 +23,49 @@ function getPiInstallPaths() {
 	};
 }
 
-async function loadBacklogHandoffHarness() {
-	cachedHarnessPromise ??= (async () => {
-		const { piEntry, typeboxEntry, aiEntry, wrapEntry } = getPiInstallPaths();
-		const source = await readFile(extensionSourcePath, "utf8");
-		const patchedSource = source
-			.replace('from "@mariozechner/pi-coding-agent"', `from ${JSON.stringify(piEntry)}`)
-			.replace('from "typebox"', `from ${JSON.stringify(typeboxEntry)}`);
-		const tempDir = await mkdtemp(path.join(os.tmpdir(), "backlog-handoff-test-module-"));
-		const tempModulePath = path.join(tempDir, "index.ts");
-		await writeFile(tempModulePath, patchedSource, "utf8");
+async function createBacklogHandoffHarness(options = {}) {
+	const { execImpl } = options;
+	const { piEntry, typeboxEntry, aiEntry, wrapEntry } = getPiInstallPaths();
+	const source = await readFile(extensionSourcePath, "utf8");
+	const patchedSource = source
+		.replace('from "@mariozechner/pi-coding-agent"', `from ${JSON.stringify(piEntry)}`)
+		.replace('from "typebox"', `from ${JSON.stringify(typeboxEntry)}`);
+	const tempDir = await mkdtemp(path.join(os.tmpdir(), "backlog-handoff-test-module-"));
+	const tempModulePath = path.join(tempDir, "index.ts");
+	await writeFile(tempModulePath, patchedSource, "utf8");
 
-		const extensionModule = await import(`${pathToFileURL(tempModulePath).href}?ts=${Date.now()}`);
-		const { validateToolArguments } = await import(aiEntry);
-		const { wrapToolDefinition } = await import(wrapEntry);
+	const extensionModule = await import(`${pathToFileURL(tempModulePath).href}?ts=${Date.now()}`);
+	const { validateToolArguments } = await import(aiEntry);
+	const { wrapToolDefinition } = await import(wrapEntry);
 
-		let tool;
-		const commands = new Map();
-		extensionModule.default({
-			on() {},
-			async exec() {
-				return { code: 1, stdout: "", stderr: "" };
-			},
-			registerCommand(name, definition) {
-				commands.set(name, definition);
-			},
-			registerTool(definition) {
-				tool = definition;
-			},
-		});
+	let tool;
+	const commands = new Map();
+	extensionModule.default({
+		on() {},
+		async exec(...args) {
+			if (execImpl) {
+				return execImpl(...args);
+			}
+			return { code: 1, stdout: "", stderr: "" };
+		},
+		registerCommand(name, definition) {
+			commands.set(name, definition);
+		},
+		registerTool(definition) {
+			tool = definition;
+		},
+	});
 
-		assert.ok(tool, "Extension did not register backlog-handoff tool");
-		return { tool, commands, validateToolArguments, wrapToolDefinition };
-	})();
+	assert.ok(tool, "Extension did not register backlog-handoff tool");
+	return { tool, commands, validateToolArguments, wrapToolDefinition };
+}
 
+async function loadBacklogHandoffHarness(options = {}) {
+	if (options.execImpl) {
+		return createBacklogHandoffHarness(options);
+	}
+
+	cachedHarnessPromise ??= createBacklogHandoffHarness();
 	return cachedHarnessPromise;
 }
 
@@ -200,6 +209,62 @@ test("backlog-handoff-init bootstraps processed folder alongside inbox", async (
 		"frontend",
 	);
 	assert.ok(notifications.some(({ message, level }) => level === "success" && /Initialized backlog handoff/.test(message)));
+});
+
+test("backlog-handoff-init pre-fills project entry with generated description when available", async () => {
+	const { commands } = await loadBacklogHandoffHarness({
+		execImpl: async (command) => {
+			if (command === "git") {
+				return { code: 1, stdout: "", stderr: "" };
+			}
+			return {
+				code: 0,
+				stdout:
+					JSON.stringify({
+						type: "message_end",
+						message: {
+							role: "assistant",
+							content: [
+								{
+									type: "text",
+									text: '{"description":"Frontend billing app. Owns checkout UI, customer billing pages, and browser-side payment flows."}',
+								},
+							],
+						},
+					}) + "\n",
+				stderr: "",
+			};
+		},
+	});
+	const initCommand = commands.get("backlog-handoff-init");
+	assert.ok(initCommand, "Extension did not register backlog-handoff-init command");
+
+	const root = await mkdtemp(path.join(os.tmpdir(), "backlog-handoff-init-generated-description-"));
+	const metaRoot = path.join(root, "meta");
+	const projectRoot = path.join(metaRoot, "frontend");
+	let editorInitialContent = "";
+
+	await mkdir(projectRoot, { recursive: true });
+
+	await initCommand.handler({}, {
+		cwd: projectRoot,
+		hasUI: true,
+		ui: {
+			async input(label) {
+				return label === "Project id" ? "frontend" : "..";
+			},
+			async editor(_title, content) {
+				editorInitialContent = content;
+				return content;
+			},
+			async confirm() {
+				return true;
+			},
+			notify() {},
+		},
+	});
+
+	assert.match(editorInitialContent, /"description": "Frontend billing app\. Owns checkout UI, customer billing pages, and browser-side payment flows\."/);
 });
 
 test("backlog-handoff rejects actually invalid flat payloads at validation time", async () => {

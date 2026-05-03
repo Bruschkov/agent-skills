@@ -9,6 +9,7 @@ Pi extension for cross-project handoffs inside one meta-project.
 - creates handoff files in target repo landing zone
 - validates registry via `/backlog-handoff-check`
 - bootstraps current repo via `/backlog-handoff-init`
+- drafts a suggested 1-2 sentence project description during init so users can edit instead of writing from scratch
 
 ## Local config
 In each repo:
@@ -53,7 +54,7 @@ Default target location:
 `backlog-handoff` writes markdown handoff files to `inbox/`. `/backlog-handoff-init` bootstraps both directories with `.gitkeep` files. Target project can later move reviewed items to `processed/` or convert them into real `backlog-md` tickets.
 
 ## Commands
-- `/backlog-handoff-init` — initialize current repo and register project in meta registry
+- `/backlog-handoff-init` — initialize current repo, scaffold inbox/processed, and open a registry entry with an AI-drafted description when possible
 - `/backlog-handoff-check` — validate config and registry
 
 ## Tool payload shape

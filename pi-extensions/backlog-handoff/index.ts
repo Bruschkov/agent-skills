@@ -1,4 +1,5 @@
 import { withFileMutationQueue, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import * as syncFs from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Type, type Static } from "typebox";
@@ -392,6 +393,135 @@ function stringifyJson(value: unknown): string {
 	return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function getPiInvocation(): { command: string; args: string[] } {
+	const currentScript = process.argv[1];
+	const isBunVirtualScript = currentScript?.startsWith("/$bunfs/root/");
+	if (currentScript && !isBunVirtualScript && syncFs.existsSync(currentScript)) {
+		return { command: process.execPath, args: [currentScript] };
+	}
+
+	const execName = path.basename(process.execPath).toLowerCase();
+	const isGenericRuntime = /^(node|bun)(\.exe)?$/.test(execName);
+	if (!isGenericRuntime) {
+		return { command: process.execPath, args: [] };
+	}
+
+	return { command: "pi", args: [] };
+}
+
+function extractLastAssistantTextFromJsonMode(stdout: string): string | null {
+	let lastText: string | null = null;
+	for (const line of stdout.split("\n")) {
+		if (!line.trim()) {
+			continue;
+		}
+
+		let event: any;
+		try {
+			event = JSON.parse(line);
+		} catch {
+			continue;
+		}
+
+		if (event.type !== "message_end" || event.message?.role !== "assistant" || !Array.isArray(event.message?.content)) {
+			continue;
+		}
+
+		const text = event.message.content
+			.filter((part: any) => part?.type === "text" && typeof part.text === "string")
+			.map((part: any) => part.text)
+			.join("\n")
+			.trim();
+		if (text) {
+			lastText = text;
+		}
+	}
+	return lastText;
+}
+
+function stripCodeFences(text: string): string {
+	const trimmed = text.trim();
+	const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+	return match ? match[1].trim() : trimmed;
+}
+
+function parseGeneratedProjectDescription(text: string): string | null {
+	const trimmed = stripCodeFences(text);
+	if (!trimmed) {
+		return null;
+	}
+
+	try {
+		const parsed = JSON.parse(trimmed);
+		if (typeof parsed === "string") {
+			const normalized = parsed.replace(/\s+/g, " ").trim();
+			return normalized.length >= 20 ? normalized : null;
+		}
+		if (isRecord(parsed) && typeof parsed.description === "string") {
+			const normalized = parsed.description.replace(/\s+/g, " ").trim();
+			return normalized.length >= 20 ? normalized : null;
+		}
+	} catch {
+		// Allow plain-text fallback.
+	}
+
+	const normalized = trimmed.replace(/^description\s*:\s*/i, "").replace(/\s+/g, " ").trim();
+	return normalized.length >= 20 && !normalized.toLowerCase().startsWith("todo") ? normalized : null;
+}
+
+async function generateProjectDescriptionDraft(
+	pi: ExtensionAPI,
+	projectRoot: string,
+	projectId: string,
+	projectPath: string,
+): Promise<string | null> {
+	const prompt = [
+		"Inspect current repository and draft the description field for a backlog-handoff project registry entry.",
+		`Project id: ${projectId}`,
+		`Registry path: ${projectPath}`,
+		"",
+		"Return only valid JSON in this exact shape:",
+		'{"description":"..."}',
+		"",
+		"Requirements:",
+		"- 1-2 sentences.",
+		"- State project purpose, ownership boundary, and what work belongs in this repo.",
+		"- Use concrete capabilities if the repo makes them clear.",
+		"- No markdown, no code fences, no extra keys.",
+		"- Ground summary in repo evidence. If evidence is weak, make the best specific guess you can.",
+	].join("\n");
+
+	const invocation = getPiInvocation();
+	const result = await pi.exec(
+		invocation.command,
+		[
+			...invocation.args,
+			"--mode",
+			"json",
+			"-p",
+			"--no-session",
+			"--no-extensions",
+			"--no-skills",
+			"--no-prompt-templates",
+			"--no-themes",
+			"--no-context-files",
+			"--append-system-prompt",
+			"When asked for a project description draft, return only the requested JSON object with no prose or markdown.",
+			"--tools",
+			"read,grep,find,ls",
+			prompt,
+		],
+		{ cwd: projectRoot, timeout: 20_000 },
+	);
+
+	if (result.code !== 0 || result.killed) {
+		return null;
+	}
+
+	const rawText = extractLastAssistantTextFromJsonMode(result.stdout) ?? result.stdout.trim();
+	return rawText ? parseGeneratedProjectDescription(rawText) : null;
+}
+
 function buildValidationReport(registry: RegistryContext, issues: ValidationIssue[]): string {
 	const errors = issues.filter((issue) => issue.severity === "error");
 	const warnings = issues.filter((issue) => issue.severity === "warning");
@@ -510,6 +640,20 @@ export default function backlogHandoffExtension(pi: ExtensionAPI) {
 					initialProjectEntry = await fs.readFile(projectEntryPath, "utf-8");
 				} catch {
 					// Keep generated default.
+				}
+			} else {
+				ctx.ui.notify("Drafting suggested project description...", "info");
+				try {
+					const generatedDescription = await generateProjectDescriptionDraft(pi, projectRoot, projectId, projectPath);
+					if (generatedDescription) {
+						initialProjectEntry = stringifyJson({
+							id: projectId,
+							path: projectPath,
+							description: generatedDescription,
+						});
+					}
+				} catch {
+					// Fall back to placeholder description.
 				}
 			}
 
