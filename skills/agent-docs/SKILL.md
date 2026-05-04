@@ -1,6 +1,6 @@
 ---
 name: agent-docs
-description: Initialize and maintain agent-facing project documentation: AGENTS.md as concise root entrypoint, .agents/docs/ as base directory for all other agent-facing documentation, ADR placement/indexing, doc audits, and link hygiene. Use when bootstrapping, reorganizing, or updating docs meant to guide coding agents across future tasks.
+description: "Initialize and maintain agent-facing project documentation: AGENTS.md as concise root entrypoint, .agents/docs/ as base directory for all other agent-facing documentation, ADR placement/indexing, doc audits, and link hygiene. Use when bootstrapping, reorganizing, or updating docs meant to guide coding agents across future tasks."
 ---
 
 # Agent Docs

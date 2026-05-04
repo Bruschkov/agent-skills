@@ -15,6 +15,30 @@ Not meant as one bulk-installable package. Pieces used selectively.
 - `pi-extensions/backlog-handoff/` — Pi extension for backlog handoff workflow
 - `prompts/` — prompt templates tracked in git
 
+## Skill installation
+The `skills` CLI scans the repo for directories containing `SKILL.md`. `--skill` selects by frontmatter `name`, not by path.
+
+List available skills:
+
+```bash
+npx skills add Bruschkov/agent-skills --list
+```
+
+Install all skills:
+
+```bash
+npx skills add Bruschkov/agent-skills
+```
+
+Install one skill:
+
+```bash
+npx skills add Bruschkov/agent-skills --skill "agent-docs"
+npx skills add Bruschkov/agent-skills --skill "writing-agents-md"
+```
+
+After repo path changes, reinstall affected skills if old lock entries point at removed paths.
+
 ## Prompt workflow
 Prompt templates in `prompts/` are source of truth.
 
