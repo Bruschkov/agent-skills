@@ -10,7 +10,8 @@ Contains reusable but loosely related:
 Not meant as one bulk-installable package. Pieces used selectively.
 
 ## What lives here
-- `writing-agents-md/` — skill for writing/reviewing `AGENTS.md`
+- `skills/writing-agents-md/` — skill for writing/reviewing `AGENTS.md`
+- `skills/agent-docs/` — skill for initializing/maintaining `.agents/docs/` and ADR placement
 - `pi-extensions/backlog-handoff/` — Pi extension for backlog handoff workflow
 - `prompts/` — prompt templates tracked in git
 
