@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-docs": {
+      "source": "Bruschkov/practical-agent-stuff",
+      "sourceType": "github",
+      "skillPath": "skills/agent-docs/SKILL.md",
+      "computedHash": "439b2aced2b8e8a63b69eaea287bc07cd1510b25785d1bda3cbfae341a437844"
+    },
+    "writing-agents-md": {
+      "source": "Bruschkov/practical-agent-stuff",
+      "sourceType": "github",
+      "skillPath": "skills/writing-agents-md/SKILL.md",
+      "computedHash": "643f6b639b041521359e921e7d5ee186c09c9d91ff331a5dbd838b6f8d28759d"
+    }
+  }
+}
