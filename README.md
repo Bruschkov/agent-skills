@@ -21,20 +21,20 @@ The `skills` CLI scans the repo for directories containing `SKILL.md`. `--skill`
 List available skills:
 
 ```bash
-npx skills add Bruschkov/agent-skills --list
+npx skills add Bruschkov/practical-agent-stuff --list
 ```
 
 Install all skills:
 
 ```bash
-npx skills add Bruschkov/agent-skills
+npx skills add Bruschkov/practical-agent-stuff
 ```
 
 Install one skill:
 
 ```bash
-npx skills add Bruschkov/agent-skills --skill "agent-docs"
-npx skills add Bruschkov/agent-skills --skill "writing-agents-md"
+npx skills add Bruschkov/practical-agent-stuff --skill "agent-docs"
+npx skills add Bruschkov/practical-agent-stuff --skill "writing-agents-md"
 ```
 
 After repo path changes, reinstall affected skills if old lock entries point at removed paths.
