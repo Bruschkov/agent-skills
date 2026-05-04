@@ -7,6 +7,27 @@ description: Initialize and maintain agent-facing project documentation: AGENTS.
 
 Agent docs are the repo operating manual for future coding agents. They must be short, navigable, current, and actionable.
 
+## Command intents
+
+This skill is self-contained. It should work without companion prompt templates.
+
+Use via natural language or skill command:
+
+```text
+/skill:agent-docs init
+/skill:agent-docs audit
+/skill:agent-docs maintain after this session
+/skill:agent-docs migrate existing docs
+/skill:agent-docs add ADR support
+```
+
+Intent mapping:
+- **init/bootstrap**: create or repair `AGENTS.md`, `.agents/docs/README.md`, and ADR location.
+- **audit/review**: check docs freshness, structure, links, ADR setup, command accuracy.
+- **maintain/update**: update docs affected by code/config/workflow changes.
+- **migrate/reorganize**: move agent-facing docs into `.agents/docs/` and update links.
+- **adr/decision support**: establish/link `.agents/docs/decisions/`; use external ADR skill if available.
+
 ## Skill boundaries
 
 Skills must remain useful when installed alone. Cross-skill references are routing hints, not hard dependencies.
@@ -38,7 +59,7 @@ Create subfolders only when needed. Prefer flat `.agents/docs/*.md` until docs b
 
 `agent-docs` owns placement; external `adr-skill` owns ADR content/workflow.
 
-Treat `adr-skill` as an unmodified external dependency. Do not assume its defaults know this repo convention.
+Treat `adr-skill` as an unmodified external dependency. Do not assume its defaults know this convention.
 
 When both are installed:
 - Store ADRs in `.agents/docs/decisions/`.
@@ -86,30 +107,23 @@ Include only durable, repo-specific knowledge that helps an agent act correctly:
 - ADRs explaining important irreversible or architectural choices
 - pointers to generated docs, API references, schemas, or external sources
 
-Do not include:
-
-- generic language/framework advice
-- code style duplicated from formatters/linters
-- exhaustive directory trees or file listings
-- generated content pasted into markdown
-- task scratch notes, stale roadmaps, TODO dumps
-- secrets, credentials, private operational data
+Do not include generic framework advice, duplicated linter rules, directory trees, generated dumps, scratch notes, stale TODOs, secrets, or credentials.
 
 ## Init workflow
 
 1. **Scan repo first**
-   - Read root instructions: `AGENTS.md` if present.
+   - Read root `AGENTS.md` if present.
    - Find existing docs: `.agents/docs/`, `docs/`, `contributing/`, `adr/`, `decisions/`.
    - Find commands/configs: package/build files, CI config, test config.
    - Find existing ADR references in code/docs.
 
 2. **Choose docs root**
-   - Use `.agents/docs/` as base dir for all agent-facing docs except `AGENTS.md`.
+   - Use `.agents/docs/` for all agent-facing docs except `AGENTS.md`.
    - If agent docs already exist elsewhere, preserve content but migrate or link into `.agents/docs/`.
    - Keep root `AGENTS.md` as the only root-level agent doc.
 
 3. **Bootstrap minimal docs**
-   - Root `AGENTS.md`: short project purpose, stack, exact commands, links to `.agents/docs/`, ADR dir hint.
+   - Root `AGENTS.md`: purpose, stack, commands, links to `.agents/docs/`, ADR dir hint.
    - `.agents/docs/README.md`: doc map, update rules, ADR location and `adr-skill --dir .agents/docs/decisions` hint.
    - Add only pages with real content. Empty scaffold folders rot.
 
@@ -118,16 +132,16 @@ Do not include:
    - If no ADR convention exists, create `.agents/docs/decisions/`.
    - Add `.agents/docs/decisions/README.md` as ADR index.
    - If `adr-skill` is available, use it with `--dir .agents/docs/decisions`.
-   - If `adr-skill` is unavailable, use existing repo ADR style or a simple template: status, context, decision, consequences, implementation notes, verification.
+   - If unavailable, use existing ADR style or simple template: status, context, decision, consequences, implementation notes, verification.
 
 5. **Update entrypoint**
    - Keep `AGENTS.md` under 60 lines when possible; hard limit 300.
-   - It should link docs, not duplicate them.
-   - Every linked doc must exist and have a clear title/purpose.
+   - Link docs; do not duplicate them.
+   - Every linked doc must exist and have clear title/purpose.
 
 ## Maintenance workflow
 
-Run this when commands, architecture, dependencies, workflows, or ADRs change:
+Run when commands, architecture, dependencies, workflows, or ADRs change:
 
 1. Update affected doc near the code change.
 2. Update `.agents/docs/README.md` if file set or ADR index changes.
@@ -136,8 +150,6 @@ Run this when commands, architecture, dependencies, workflows, or ADRs change:
 5. Verify links and commands.
 
 ## Page pattern
-
-For each non-trivial doc, prefer:
 
 ```markdown
 # <Topic>
@@ -172,9 +184,7 @@ Omit sections that add no value. Keep pages focused; split when a page covers un
 - [ ] Stale or contradictory docs removed.
 - [ ] Secrets absent.
 
-## Output when reporting audit
-
-Keep report compact:
+## Output format
 
 ```text
 Status: pass|needs work
