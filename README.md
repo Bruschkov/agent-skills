@@ -13,6 +13,7 @@ Not meant as one bulk-installable package. Pieces used selectively.
 - `skills/writing-agents-md/` — skill for writing/reviewing `AGENTS.md`
 - `skills/agent-docs/` — skill for initializing/maintaining `.agents/docs/` and ADR placement
 - `pi-extensions/backlog-handoff/` — Pi extension for backlog handoff workflow
+- `opencode-plugins/backlog-handoff/` — OpenCode plugin port of backlog handoff workflow
 - `prompts/` — prompt templates tracked in git
 
 ## Skill installation
@@ -38,6 +39,20 @@ npx skills add Bruschkov/practical-agent-stuff --skill "writing-agents-md"
 ```
 
 After repo path changes, reinstall affected skills if old lock entries point at removed paths.
+
+## OpenCode plugin workflow
+
+Load the backlog-handoff plugin from source in OpenCode config:
+
+```jsonc
+{
+  "plugin": [
+    "file:///absolute/path/to/practical-agent-stuff/opencode-plugins/backlog-handoff/index.ts"
+  ]
+}
+```
+
+OpenCode plugins cannot add slash commands, so backlog-handoff init/check are exposed as tools.
 
 ## Prompt workflow
 Prompt templates in `prompts/` are source of truth.
