@@ -1,0 +1,17 @@
+{
+  "rules": [
+    "git commit",
+    "git push",
+    "git reset --hard",
+    "git clean",
+    "sudo",
+    "su ",
+    "rm -rf /",
+    "rm -rf ~",
+    "mkfs",
+    "dd ",
+    "reboot",
+    "shutdown",
+    "halt"
+  ]
+}
