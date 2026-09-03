@@ -1,12 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "agent-docs": {
-      "source": "Bruschkov/practical-agent-stuff",
-      "sourceType": "github",
-      "skillPath": "skills/agent-docs/SKILL.md",
-      "computedHash": "439b2aced2b8e8a63b69eaea287bc07cd1510b25785d1bda3cbfae341a437844"
-    },
     "create-opencode-plugin": {
       "source": "igorwarzocha/opencode-workflows",
       "sourceType": "github",
@@ -18,12 +12,6 @@
       "sourceType": "github",
       "skillPath": "plugins/javascript-typescript/skills/typescript-advanced-types/SKILL.md",
       "computedHash": "3a3be8c925f96ac4e1280db28a01677e7ca5197f3792de2bbf35ab3bb324b6dd"
-    },
-    "writing-agents-md": {
-      "source": "Bruschkov/practical-agent-stuff",
-      "sourceType": "github",
-      "skillPath": "skills/writing-agents-md/SKILL.md",
-      "computedHash": "643f6b639b041521359e921e7d5ee186c09c9d91ff331a5dbd838b6f8d28759d"
     },
     "zod": {
       "source": "pproenca/dot-skills",

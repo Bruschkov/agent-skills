@@ -1,8 +1,8 @@
 ---
 description: Plan the next TODO
 ---
+Read @TODO.md, inspect files relevant to its first incomplete step, and identify that step.                                                                                   
 
-Read @TODO.md and identify the next incomplete step.
+If the TODO is missing, complete, ambiguous, or conflicts with the current code/configuration, say so and ask the smallest clarification needed.                              
 
-If @TODO.md is missing, complete, or ambiguous, say so and ask for the smallest needed clarification.
-Do not update durable docs unless the next TODO explicitly requires it.
+Do not update durable docs unless that step explicitly requires it. 
